@@ -1,0 +1,8 @@
+* text=auto
+
+# Prefer LF for markdown/docs
+*.md text eol=lf
+*.txt text eol=lf
+
+# PowerShell scripts: keep LF for clean diffs
+*.ps1 text eol=lf

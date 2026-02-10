@@ -1,0 +1,15 @@
+# Commit message template (Win11 Pro Minimalist)
+# Format: <type>(scope): <summary>
+#
+# Types: feat, fix, chore, docs, refactor, security, test
+# Scopes: appx, policies, logging, services, rdp, docs
+#
+# Example:
+# feat(policies): disable Start web search and Copilot
+#
+# Body (optional):
+# - Why: ...
+# - Notes: ...
+#
+# Footer (optional):
+# BREAKING CHANGE: ...
