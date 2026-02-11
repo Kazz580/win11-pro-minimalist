@@ -1,6 +1,6 @@
 @{
   RootModule        = 'Win11ProMinimalist.psm1'
-  ModuleVersion     = '1.4.0'
+  ModuleVersion     = '1.5.1'
   GUID              = 'd9c4f7a5-3d4e-4f3a-9d3b-6a8d5a8b5f1b'
   Author            = 'Kazz'
   CompanyName       = 'Personal'

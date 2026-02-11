@@ -69,24 +69,24 @@ $LogPath        = Join-Path $env:TEMP "Win11-Minimalist-$Timestamp.log"
 $ChangeLogPath  = Join-Path $env:TEMP "Win11-Minimalist-$Timestamp-CHANGES.log"
 $TranscriptPath = Join-Path $env:TEMP "Win11-Minimalist-$Timestamp-transcript.txt"
 
-function Log {
+function Write-Log {
   param([string]$Message, [ValidateSet("INFO","WARN","ERROR")] [string]$Level="INFO")
   $line = "{0} [{1}] {2}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $Level, $Message
   Add-Content -Path $LogPath -Value $line
   Write-Host $line
 }
 
-function Log-Change {
+function Write-Write-ChangeLog {
   param([string]$Message)
   $line = "{0} [CHANGE] {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $Message
   Add-Content -Path $ChangeLogPath -Value $line
 }
 
 Start-Transcript -Path $TranscriptPath -Append | Out-Null
-Log "Starting Win11 Minimalist script."
-Log "Full log:      $LogPath"
-Log "Changes-only:  $ChangeLogPath"
-Log "Transcript:    $TranscriptPath"
+Write-Log "Starting Win11 Minimalist script."
+Write-Log "Full log:      $LogPath"
+Write-Log "Changes-only:  $ChangeLogPath"
+Write-Log "Transcript:    $TranscriptPath"
 Log ("Config: " + ($Config.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" } -join ", "))
 
 # -------------------- CONFIRMATION --------------------
@@ -97,7 +97,7 @@ Write-Host "Changes-only: $ChangeLogPath" -ForegroundColor Yellow
 Write-Host ""
 $confirm = Read-Host "Type YES to proceed"
 if ($confirm -ne "YES") {
-  Log "User did not confirm. Exiting." "WARN"
+  Write-Log "User did not confirm. Exiting." "WARN"
   Stop-Transcript | Out-Null
   return
 }
@@ -113,18 +113,18 @@ function Add-Task {
   $Tasks.Add([pscustomobject]@{ Name = $Name; Action = $Action }) | Out-Null
 }
 
-function Run-Tasks {
+function Invoke-Tasks {
   $total = $Tasks.Count
   for ($i = 0; $i -lt $total; $i++) {
     $t = $Tasks[$i]
     $pct = [int](($i / [math]::Max($total,1)) * 100)
     Write-Progress -Activity "Win11 Minimalist Setup" -Status $t.Name -PercentComplete $pct
-    Log "BEGIN: $($t.Name)"
+    Write-Log "BEGIN: $($t.Name)"
     try {
       & $t.Action
-      Log "END:   $($t.Name)"
+      Write-Log "END:   $($t.Name)"
     } catch {
-      Log "FAILED: $($t.Name) - $($_.Exception.Message)" "ERROR"
+      Write-Log "FAILED: $($t.Name) - $($_.Exception.Message)" "ERROR"
       throw
     }
   }
@@ -132,12 +132,12 @@ function Run-Tasks {
 }
 
 # -------------------- HELPERS --------------------
-function Ensure-Key {
+function Initialize-RegistryKey {
   param([Parameter(Mandatory=$true)][string]$Path)
   if (-not (Test-Path $Path)) {
     if (-not $Config.WhatIfOnly) { New-Item -Path $Path -Force | Out-Null }
-    Log "Ensured registry key exists: $Path"
-    if (-not $Config.WhatIfOnly) { Log-Change "Created registry key: $Path" }
+    Write-Log "Ensured registry key exists: $Path"
+    if (-not $Config.WhatIfOnly) { Write-ChangeWrite-Log "Created registry key: $Path" }
   }
 }
 
@@ -148,7 +148,7 @@ function Set-Dword {
     [Parameter(Mandatory=$true)][int]$Value
   )
 
-  Ensure-Key -Path $Path
+  Initialize-RegistryKey -Path $Path
 
   $existing = $null
   $hadValue = $false
@@ -158,17 +158,17 @@ function Set-Dword {
   } catch {}
 
   if ($Config.WhatIfOnly) {
-    Log "WHATIF: Set DWORD $Path\$Name = $Value"
+    Write-Log "WHATIF: Set DWORD $Path\$Name = $Value"
     return
   }
 
   New-ItemProperty -Path $Path -Name $Name -PropertyType DWord -Value $Value -Force | Out-Null
-  Log "Set DWORD $Path\$Name = $Value"
+  Write-Log "Set DWORD $Path\$Name = $Value"
 
   if (-not $hadValue) {
-    Log-Change "Created DWORD: $Path\$Name = $Value"
+    Write-ChangeLog "Created DWORD: $Path\$Name = $Value"
   } elseif ([int]$existing -ne [int]$Value) {
-    Log-Change "Changed DWORD: $Path\$Name: $existing -> $Value"
+    Write-ChangeLog "Changed DWORD: ${Path}\${Name}: ${existing} -> ${Value}"
   }
 }
 
@@ -176,23 +176,23 @@ function Remove-AppxLike {
   param([Parameter(Mandatory=$true)][string[]]$Patterns)
 
   foreach ($p in $Patterns) {
-    Log "Processing Appx pattern: $p"
+    Write-Log "Processing Appx pattern: $p"
 
     $installed = @(Get-AppxPackage -AllUsers $p -ErrorAction SilentlyContinue)
     if ($installed.Count -eq 0) {
-      Log "No installed Appx packages found for: $p"
+      Write-Log "No installed Appx packages found for: $p"
     } else {
       foreach ($pkg in $installed) {
-        Log "Found installed: $($pkg.Name) ($($pkg.PackageFullName))"
+        Write-Log "Found installed: $($pkg.Name) ($($pkg.PackageFullName))"
         if ($Config.WhatIfOnly) {
-          Log "WHATIF: Remove-AppxPackage -AllUsers -Package $($pkg.PackageFullName)"
+          Write-Log "WHATIF: Remove-AppxPackage -AllUsers -Package $($pkg.PackageFullName)"
         } else {
           try {
             Remove-AppxPackage -Package $pkg.PackageFullName -AllUsers -ErrorAction SilentlyContinue
-            Log "Removed installed package: $($pkg.PackageFullName)"
-            Log-Change "Removed Appx (installed): $($pkg.PackageFullName)"
+            Write-Log "Removed installed package: $($pkg.PackageFullName)"
+            Write-ChangeLog "Removed Appx (installed): $($pkg.PackageFullName)"
           } catch {
-            Log "Could not remove installed package (may already be gone / in use): $($pkg.PackageFullName) - $($_.Exception.Message)" "WARN"
+            Write-Log "Could not remove installed package (may already be gone / in use): $($pkg.PackageFullName) - $($_.Exception.Message)" "WARN"
           }
         }
       }
@@ -200,19 +200,19 @@ function Remove-AppxLike {
 
     $prov = @(Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -like $p })
     if ($prov.Count -eq 0) {
-      Log "No provisioned packages found for: $p"
+      Write-Log "No provisioned packages found for: $p"
     } else {
       foreach ($pp in $prov) {
-        Log "Found provisioned: $($pp.DisplayName) ($($pp.PackageName))"
+        Write-Log "Found provisioned: $($pp.DisplayName) ($($pp.PackageName))"
         if ($Config.WhatIfOnly) {
-          Log "WHATIF: Remove-AppxProvisionedPackage -Online -PackageName $($pp.PackageName)"
+          Write-Log "WHATIF: Remove-AppxProvisionedPackage -Online -PackageName $($pp.PackageName)"
         } else {
           try {
             Remove-AppxProvisionedPackage -Online -PackageName $pp.PackageName -ErrorAction SilentlyContinue | Out-Null
-            Log "Deprovisioned package: $($pp.PackageName)"
-            Log-Change "Deprovisioned Appx: $($pp.PackageName)"
+            Write-Log "Deprovisioned package: $($pp.PackageName)"
+            Write-ChangeLog "Deprovisioned Appx: $($pp.PackageName)"
           } catch {
-            Log "Could not deprovision package: $($pp.PackageName) - $($_.Exception.Message)" "WARN"
+            Write-Log "Could not deprovision package: $($pp.PackageName) - $($_.Exception.Message)" "WARN"
           }
         }
       }
@@ -226,15 +226,15 @@ function Disable-Services {
   foreach ($s in $ServiceNames) {
     $svc = Get-Service -Name $s -ErrorAction SilentlyContinue
     if ($null -eq $svc) {
-      Log "Service not found: $s"
+      Write-Log "Service not found: $s"
       continue
     }
 
     $startMode = (Get-CimInstance Win32_Service -Filter "Name='$s'" -ErrorAction SilentlyContinue).StartMode
-    Log "Service: $s (Status=$($svc.Status), StartMode=$startMode)"
+    Write-Log "Service: $s (Status=$($svc.Status), StartMode=$startMode)"
 
     if ($Config.WhatIfOnly) {
-      Log "WHATIF: Stop-Service $s; Set-Service $s -StartupType Disabled"
+      Write-Log "WHATIF: Stop-Service $s; Set-Service $s -StartupType Disabled"
       continue
     }
 
@@ -248,10 +248,10 @@ function Disable-Services {
     } catch {}
 
     if ($changed) {
-      Log "Disabled service: $s"
-      Log-Change "Disabled service: $s"
+      Write-Log "Disabled service: $s"
+      Write-ChangeLog "Disabled service: $s"
     } else {
-      Log "Service already disabled (or could not change): $s"
+      Write-Log "Service already disabled (or could not change): $s"
     }
   }
 }
@@ -261,21 +261,21 @@ function Remove-ProtocolHandler {
 
   $path = "Registry::HKEY_CLASSES_ROOT\$ProtocolName"
   if (-not (Test-Path $path)) {
-    Log "Protocol handler not found: HKCR:\$ProtocolName"
+    Write-Log "Protocol handler not found: HKCR:\$ProtocolName"
     return
   }
 
   if ($Config.WhatIfOnly) {
-    Log "WHATIF: Remove protocol handler HKCR:\$ProtocolName"
+    Write-Log "WHATIF: Remove protocol handler HKCR:\$ProtocolName"
     return
   }
 
   try {
     Remove-Item -Path $path -Recurse -Force
-    Log "Removed protocol handler: HKCR:\$ProtocolName"
-    Log-Change "Removed protocol handler: HKCR:\$ProtocolName"
+    Write-Log "Removed protocol handler: HKCR:\$ProtocolName"
+    Write-ChangeLog "Removed protocol handler: HKCR:\$ProtocolName"
   } catch {
-    Log "Failed to remove protocol handler HKCR:\$ProtocolName - $($_.Exception.Message)" "WARN"
+    Write-Log "Failed to remove protocol handler HKCR:\$ProtocolName - $($_.Exception.Message)" "WARN"
   }
 }
 
@@ -325,7 +325,7 @@ Add-Task "Remove common consumer/bloat apps (incl. Teams, Copilot, Outlook)" {
 
 Add-Task "Optional: Uninstall OneDrive" {
   if (-not $Config.UninstallOneDrive) {
-    Log "UninstallOneDrive disabled; skipping."
+    Write-Log "UninstallOneDrive disabled; skipping."
     return
   }
 
@@ -333,19 +333,19 @@ Add-Task "Optional: Uninstall OneDrive" {
   if (-not (Test-Path $OneDriveSetup)) { $OneDriveSetup = Join-Path $env:SystemRoot "System32\OneDriveSetup.exe" }
 
   if (-not (Test-Path $OneDriveSetup)) {
-    Log "OneDriveSetup.exe not found; skipping." "WARN"
+    Write-Log "OneDriveSetup.exe not found; skipping." "WARN"
     return
   }
 
-  Log "Uninstalling OneDrive via: $OneDriveSetup"
+  Write-Log "Uninstalling OneDrive via: $OneDriveSetup"
   if ($Config.WhatIfOnly) {
-    Log "WHATIF: Start-Process `"$OneDriveSetup`" /uninstall"
+    Write-Log "WHATIF: Start-Process `"$OneDriveSetup`" /uninstall"
     return
   }
 
   Start-Process -FilePath $OneDriveSetup -ArgumentList "/uninstall" -Wait -WindowStyle Hidden
-  Log "OneDrive uninstall command completed."
-  Log-Change "Ran OneDrive uninstall."
+  Write-Log "OneDrive uninstall command completed."
+  Write-ChangeLog "Ran OneDrive uninstall."
 }
 
 Add-Task "Policies: Reduce telemetry + disable consumer experiences + disable Copilot" {
@@ -422,12 +422,12 @@ Add-Task "Policy refresh (gpupdate)" {
 
 Add-Task "Finalize: Reboot reminder" {
   Log "All tasks complete. Reboot is recommended to finalize removals/policy changes." "WARN"
-  Log-Change "Reboot recommended to finalize changes."
+  Write-ChangeLog "Reboot recommended to finalize changes."
 }
 
 # -------------------- RUN --------------------
 try {
-  Run-Tasks
+  Invoke-Tasks
   Log "Completed successfully."
 } catch {
   Log "Script terminated due to an error. Check logs:" "ERROR"

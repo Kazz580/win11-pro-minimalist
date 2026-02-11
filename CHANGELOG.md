@@ -6,6 +6,14 @@ This project follows Semantic Versioning (MAJOR.MINOR.PATCH).
 
 ---
 
+## [1.5.1] - 2026-02-11
+
+### Fixed
+- Fixed PowerShell string interpolation issue causing “Variable reference is not valid” error.
+- Renamed internal helper functions to approved verbs to satisfy PSScriptAnalyzer.
+
+---
+
 ## [1.5.0] - 2026-02-10
 
 ### Added
