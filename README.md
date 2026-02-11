@@ -1,46 +1,58 @@
-# Win11 Pro Minimalist Script
+# Win11 Pro Minimalist
 
-A conservative debloat + policy hardening PowerShell script for a fresh Windows 11 Pro install.
-Designed for **one-time post-install cleanup** with **audit-friendly logs** (full log + changes-only log).
-
-> Safety goals: **do not remove** Microsoft Store, Windows Update, Edge, or WebView2 runtime.
-
-![Version](https://img.shields.io/badge/version-v1.5.1-blue)
+![Release](https://img.shields.io/github/v/release/Kazz580/win11-pro-minimalist?sort=semver)
+![CI](https://github.com/Kazz580/win11-pro-minimalist/actions/workflows/ci.yml/badge.svg)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%2011-lightgrey)
 
+A conservative Windows 11 Pro debloat + policy hardening **PowerShell module** for fresh installs.
+
+Designed for post-install cleanup with structured logging and audit-friendly change tracking.
+
+> Safety principle: **Do not remove Microsoft Store, Windows Update, Edge, or WebView2 runtime.**
+
+---
+
 ## Features
 
-- Removes common “consumer” Appx packages (Teams, Copilot, New Outlook, Phone Link, DevHome, Office hub, etc.)
+### App Cleanup
+- Removes common consumer Appx packages (Teams, Copilot, New Outlook, Phone Link, DevHome, Office Hub, etc.)
 - Optional: Uninstall OneDrive
 - Optional: Disable Xbox services
-- Policies:
-  - Reduce telemetry (Pro-safe level)
-  - Disable consumer experiences / cloud optimized content
-  - Disable Windows Copilot
-  - Disable Start Menu web/Bing results (local-only search)
-- Gaming cleanup:
-  - Disable GameDVR / background capture
-  - Remove `ms-gamingoverlay:` protocol handler to stop “Get an app to open this link” popup
-- UX:
-  - Confirmation prompt
-  - Progress bar
-- Auditing:
-  - Full log + transcript
-  - Changes-only log showing only what actually changed
+
+### Policy Hardening
+- Reduce telemetry (Pro-safe level)
+- Disable consumer experiences / cloud optimized content
+- Disable Windows Copilot
+- Disable Start Menu web/Bing results (local-only search)
+
+### Gaming Cleanup
+- Disable GameDVR / background capture
+- Remove `ms-gamingoverlay:` protocol handler (prevents Xbox Game Bar popup)
+
+### UX & Safety
+- Confirmation prompt
+- Progress bar
+- Designed to be rerunnable (idempotent behavior)
+
+### Auditing
+- Full activity log
+- Changes-only log (records only actual modifications)
+- PowerShell transcript
+
+---
 
 ## Requirements
 
 - Windows 11 Pro
-- PowerShell run **as Administrator**
+- Run PowerShell **as Administrator**
 - Run while logged in as your target local user (so HKCU changes apply to that user)
+
+---
 
 ## Usage
 
-### Option A: Run the wrapper script (recommended)
-1) Copy the repo to a local folder (example: `C:\scripts\win11-pro-minimalist`)
-2) Open PowerShell **as Administrator**
-3) Run:
+### Option A — Wrapper (Recommended)
 
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
@@ -48,31 +60,41 @@ cd C:\scripts\win11-pro-minimalist\src
 .\Invoke-Win11ProMinimalist.ps1
 ```
 
-### Option B: Import as a module
-From an elevated PowerShell in `src`:
+### Option B — Import Module
 
 ```powershell
-Import-Module .\Win11ProMinimalist -Force
+Import-Module .\src\Win11ProMinimalist -Force
 Invoke-Win11ProMinimalist
 ```
 
-> The function accepts switches for overrides:
-> - `-UninstallOneDrive:$false` (keep OneDrive)
-> - `-DisableXboxServices:$false` (keep Xbox services)
-> - `-WhatIfOnly` (simulate)
+### Optional Parameters
+
+```powershell
+Invoke-Win11ProMinimalist `
+  -UninstallOneDrive:$false `
+  -DisableXboxServices:$false `
+  -WhatIfOnly
+```
+
+- `-WhatIfOnly` simulates changes without modifying the system.
+
+---
 
 ## Logs
 
+Each run creates timestamped files under `%TEMP%`:
 
-The script outputs three files in `%TEMP%`:
+- `Win11-Minimalist-<timestamp>.log` — Full activity log  
+- `Win11-Minimalist-<timestamp>-CHANGES.log` — Only actual modifications  
+- `Win11-Minimalist-<timestamp>-transcript.txt` — PowerShell transcript  
 
-- `Win11-Minimalist-<timestamp>.log` — full activity log
-- `Win11-Minimalist-<timestamp>-CHANGES.log` — only actual changes (best for auditing)
-- `Win11-Minimalist-<timestamp>-transcript.txt` — PowerShell transcript
+Logs are never appended. Each execution generates new files.
+
+---
 
 ## Configuration
 
-At the top of the script:
+Default configuration (inside module):
 
 ```powershell
 $Config = [ordered]@{
@@ -82,15 +104,19 @@ $Config = [ordered]@{
 }
 ```
 
-- `WhatIfOnly = $true` will simulate actions and log intended changes.
+---
 
-## Notes / Gotchas
+## Design Principles
 
-- HKCU changes apply only to the user running the script. If you run it under the built-in Administrator profile, per-user settings may not apply to your daily user.
-- Removing the `ms-gamingoverlay` protocol prevents the “Get an app to open this link” popup when games call Xbox Game Bar.
-- Keeping Edge + WebView2 is recommended for Windows stability.
+- Conservative removals (no Store/Update breakage)
+- Policy-based where possible
+- Idempotent (safe to rerun)
+- Explicit logging for auditing
+- Avoid breaking Windows servicing stack
 
-## Repository Layout
+---
+
+## Repository Structure
 
 ```text
 .
@@ -99,22 +125,27 @@ $Config = [ordered]@{
 │  └─ Win11ProMinimalist/
 │     ├─ Win11ProMinimalist.psm1
 │     └─ Win11ProMinimalist.psd1
-├─ docs/
-│  ├─ VersionHistory.txt
-│  ├─ VERSIONING.md
-│  └─ git-setup.md
 ├─ CHANGELOG.md
 └─ README.md
 ```
-.
-├─ src/
-│  └─ Win11ProMinimalist.ps1
-├─ docs/
-│  └─ VersionHistory.txt
-├─ CHANGELOG.md
-└─ README.md
-```
+
+---
+
+## Versioning
+
+This project follows **Semantic Versioning (MAJOR.MINOR.PATCH)**.
+
+The following must always match:
+
+- Module version (`Win11ProMinimalist.psd1`)
+- Top entry in `CHANGELOG.md`
+- Git tag (`vX.Y.Z`)
+
+CI automatically validates version consistency.
+
+---
 
 ## License
 
-Personal-use / internal-use. Add your preferred license here if you plan to share publicly.
+Personal-use / internal-use.  
+Add a formal license if distributing publicly.
