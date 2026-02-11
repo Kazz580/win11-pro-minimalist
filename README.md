@@ -120,14 +120,17 @@ $Config = [ordered]@{
 
 ```text
 .
+├─ .github/
+│  └─ workflows/
+│     └─ ci.yml
 ├─ src/
 │  ├─ Invoke-Win11ProMinimalist.ps1
 │  └─ Win11ProMinimalist/
 │     ├─ Win11ProMinimalist.psm1
 │     └─ Win11ProMinimalist.psd1
 ├─ CHANGELOG.md
+├─ VERSIONING.md
 └─ README.md
-```
 
 ---
 
@@ -141,7 +144,13 @@ The following must always match:
 - Top entry in `CHANGELOG.md`
 - Git tag (`vX.Y.Z`)
 
-CI automatically validates version consistency.
+CI automatically validates:
+
+Module version matches CHANGELOG
+
+PSScriptAnalyzer errors
+
+Semantic version discipline
 
 ---
 
