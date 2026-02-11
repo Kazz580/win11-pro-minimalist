@@ -5,6 +5,10 @@ Designed for **one-time post-install cleanup** with **audit-friendly logs** (ful
 
 > Safety goals: **do not remove** Microsoft Store, Windows Update, Edge, or WebView2 runtime.
 
+![Version](https://img.shields.io/badge/version-v1.5.1-blue)
+![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue)
+![Platform](https://img.shields.io/badge/platform-Windows%2011-lightgrey)
+
 ## Features
 
 - Removes common “consumer” Appx packages (Teams, Copilot, New Outlook, Phone Link, DevHome, Office hub, etc.)
