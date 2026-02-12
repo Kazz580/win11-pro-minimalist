@@ -131,6 +131,7 @@ $Config = [ordered]@{
 ├─ CHANGELOG.md
 ├─ VERSIONING.md
 └─ README.md
+```
 
 ---
 
