@@ -158,4 +158,3 @@ Semantic version discipline
 ## License
 
 Personal-use / internal-use.  
-Add a formal license if distributing publicly.
